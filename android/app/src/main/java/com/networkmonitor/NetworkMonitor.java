@@ -3,18 +3,13 @@ package com.networkmonitor;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.UnknownHostException;
 
 /**
  * Created by ling on 2/26/16.
@@ -35,7 +30,7 @@ public class NetworkMonitor {
 
         private final String name;
 
-        private ConnectionType(String name) {
+        ConnectionType(String name) {
             this.name = name;
         }
 
@@ -47,7 +42,7 @@ public class NetworkMonitor {
     public static class NetworkStatus {
         public final boolean hasInternet;
         public final ConnectionType connectionType;
-        // Kbps
+        // Kb/s
         public final Double downloadBandwidth;
 
         protected NetworkStatus(boolean hasInternet,
@@ -103,7 +98,7 @@ public class NetworkMonitor {
             URL url = new URL(host);
             URLConnection urlConnection = url.openConnection();
             urlConnection.setConnectTimeout(2000);
-            urlConnection.setReadTimeout(5000);
+            urlConnection.setReadTimeout(2000);
 
             byte[] buffer = new byte[512];
             InputStream in = urlConnection.getInputStream();
@@ -114,8 +109,6 @@ public class NetworkMonitor {
                 size += nRead;
             }
             in.close();
-            Log.e("LING", "Bytes read: " + size);
-            Log.e("LING", "Time: " + (System.currentTimeMillis() - start));
             return size / 1024 / (System.currentTimeMillis() - start) * 1000;
         } catch (Exception e) {
             return null;
@@ -141,7 +134,6 @@ public class NetworkMonitor {
             return true;
         } catch (IOException e) {
             // Either we have a timeout or unreachable host or failed DNS lookup
-            System.out.println(e);
             return false;
         } finally {
             if (socket != null) {

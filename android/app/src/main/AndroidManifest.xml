@@ -6,11 +6,16 @@
 
 
     <application
-      android:allowBackup="true"
+        android:name=".NetworkMonitorApplication"
+        android:allowBackup="true"
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher"
       android:theme="@style/AppTheme">
-      <activity
+        <service
+            android:name=".NetworkMonitoringService"
+            android:enabled="true" />
+
+        <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
         android:configChanges="keyboard|keyboardHidden|orientation|screenSize">

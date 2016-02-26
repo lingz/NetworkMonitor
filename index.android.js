@@ -18,6 +18,7 @@ class NetworkMonitor extends Component {
   constructor(props) {
     super(props)
     this.state = {
+      active: false,
       connectionType: "Unknown",
       ping: 0,
       speed: 0
@@ -37,6 +38,20 @@ class NetworkMonitor extends Component {
       console.log("Got a result! " + speed)
       this.setState({ speed })
     })
+  }
+
+  toggleMonitor() {
+    this.setState({
+      active: !this.state.active
+    })
+    if (this.state.active) {
+      React.NativeModules.NetworkModule.stopMonitoringService()
+    } else {
+      React.NativeModules.NetworkModule.startMonitoringService()
+    }
+  }
+
+  stopMonitor() {
   }
 
   testNetwork() {
@@ -59,8 +74,18 @@ class NetworkMonitor extends Component {
     let pingString = ping > 0 ? ping : "Unknown"
     let speedString = speed > 0 ? Math.round(speed) + " kB/s" : "Unknown"
 
+    let toggleText = this.state.active ?
+      "Start Monitoring" : "Stop Monitoring"
+
     return (
       <View style={styles.container}>
+        <Button
+          style={this.state.active ?
+            styles.toggleButtonActive : styles.toggleButtonInactive}
+          onPress={this.toggleMonitor}
+        >
+          {toggleText}
+        </Button>
         <Text style={styles.welcome}>
           Network Monitor
         </Text>
@@ -103,6 +128,12 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 5,
   },
+  toggleButtonActive: {
+    color: '#d9534f'
+  },
+  toggleButtonInactive: {
+    color: '#5cb85c'
+  }
 });
 
 AppRegistry.registerComponent('NetworkMonitor', () => NetworkMonitor);
