@@ -134,14 +134,22 @@ public class NetworkMonitor {
     }
 
     public boolean hasInternet(String host, int port) {
+        Socket socket = null;
         try {
-            Socket socket = new Socket();
+            socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), 2000);
             return true;
         } catch (IOException e) {
             // Either we have a timeout or unreachable host or failed DNS lookup
             System.out.println(e);
             return false;
+        } finally {
+            if (socket != null) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                }
+            }
         }
     }
 
