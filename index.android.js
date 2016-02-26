@@ -12,39 +12,75 @@ import React, {
   DeviceEventEmitter
 } from 'react-native';
 
+import Button from "react-native-button"
+
 class NetworkMonitor extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      text: "Initial"
+      connectionType: "Unknown",
+      ping: 0,
+      speed: 0
     }
   }
 
   componentWillMount() {
-    React.NativeModules.NetworkModule.test("Dogs")
-    DeviceEventEmitter.addListener("newString", (e) => {
-      this.setState({
-        text: e
-      })
+    DeviceEventEmitter.addListener("connectionType", (connectionType) => {
+      console.log("Got a result! " + connectionType)
+      this.setState({ connectionType })
+    })
+    DeviceEventEmitter.addListener("ping", (ping) => {
+      console.log("Got a result! " + ping)
+      this.setState({ ping })
+    })
+    DeviceEventEmitter.addListener("speed", (speed) => {
+      console.log("Got a result! " + speed)
+      this.setState({ speed })
     })
   }
 
+  testNetwork() {
+    React.NativeModules.NetworkModule.testNetwork()
+  }
+
   render() {
+    let ping = this.state.ping
+    let speed = this.state.speed
+
+    let online
+    if (ping == 0) {
+      online = "Unknown"
+    } else if (ping === -1) {
+      online = "No"
+    } else {
+      online = "Yes"
+    }
+
+    let pingString = ping > 0 ? ping : "Unknown"
+    let speedString = speed > 0 ? speed + " kB/s" : "Unknown"
+
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>
-          Welcome to React Native!
-          This is the future of mobile dev
+          Network Monitor
         </Text>
         <Text style={styles.instructions}>
-          To get started, edit index.android.js
+          Connection Type: {this.state.connectionType}
         </Text>
         <Text style={styles.instructions}>
-          Here we go: {this.state.text}
+          Online: {online}
         </Text>
         <Text style={styles.instructions}>
-          Shake or press menu button for dev menu
+          Ping: {pingString}
         </Text>
+        <Text style={styles.instructions}>
+          Speed: {speedString}
+        </Text>
+        <Button
+          onPress={this.testNetwork}
+        >
+          Press to test
+        </Button>
       </View>
     );
   }
