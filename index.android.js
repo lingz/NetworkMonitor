@@ -9,53 +9,79 @@ import React, {
   StyleSheet,
   Text,
   View,
-  DeviceEventEmitter
+  DeviceEventEmitter,
+  Linking,
+  TouchableHighlight,
 } from 'react-native';
-
-import Button from "react-native-button"
 
 class NetworkMonitor extends Component {
   constructor(props) {
     super(props)
+    this.intervalId = -1;
     this.state = {
-      active: false,
+      active: undefined,
       connectionType: "Unknown",
       ping: 0,
-      speed: 0
+      speed: 0,
+      location: "Unknown",
+      rssi: -1,
+      nextPing: -1
     }
   }
 
   componentWillMount() {
+    DeviceEventEmitter.addListener("active", (active) => {
+      this.setState({ active })
+    })
     DeviceEventEmitter.addListener("connectionType", (connectionType) => {
-      console.log("Got a result! " + connectionType)
       this.setState({ connectionType })
     })
     DeviceEventEmitter.addListener("ping", (ping) => {
-      console.log("Got a result! " + ping)
-      this.setState({ ping })
+      this.setState({
+        ping,
+        nextPing: 10
+      })
+      if (this.intervalId === -1) {
+        this.intervalId = setInterval(() => {
+          if (this.state.nextPing > 0) {
+            this.setState({
+              nextPing: this.state.nextPing - 1
+            })
+          }
+        }, 1000)
+      }
     })
     DeviceEventEmitter.addListener("speed", (speed) => {
-      console.log("Got a result! " + speed)
       this.setState({ speed })
     })
+    DeviceEventEmitter.addListener("location", (location) => {
+      this.setState({ location })
+    })
+    DeviceEventEmitter.addListener("rssi", (rssi) => {
+      this.setState({ rssi })
+    })
+    React.NativeModules.NetworkModule.checkServiceStatus()
+  }
+
+  componentWillUnmount() {
+    if (this.intervalId !== -1) {
+      clearInterval(this.intervalId)
+    }
   }
 
   toggleMonitor() {
-    this.setState({
-      active: !this.state.active
-    })
     if (this.state.active) {
       React.NativeModules.NetworkModule.stopMonitoringService()
     } else {
       React.NativeModules.NetworkModule.startMonitoringService()
     }
+    this.setState({
+      active: !this.state.active
+    })
   }
 
-  stopMonitor() {
-  }
-
-  testNetwork() {
-    React.NativeModules.NetworkModule.testNetwork()
+  openResults() {
+    Linking.openURL("http://www.google.com")
   }
 
   render() {
@@ -75,37 +101,84 @@ class NetworkMonitor extends Component {
     let speedString = speed > 0 ? Math.round(speed) + " kB/s" : "Unknown"
 
     let toggleText = this.state.active ?
-      "Start Monitoring" : "Stop Monitoring"
+      "Stop Monitoring" : "Start Monitoring"
+
+    let qualityNode = (
+      <Text>
+        <Text style={styles.goldText}>
+          {"★".repeat(this.state.rssi + 1)}
+        </Text>
+        <Text>
+          {"★".repeat(5 - this.state.rssi - 1)}
+        </Text>
+      </Text>
+    )
+
+    let nextPing = this.state.nextPing === -1 ?
+      "Unknown" : this.state.nextPing + " seconds";
+
+    let body = this.state.active === undefined ?
+      (
+        <Text>
+          Loading...
+        </Text>
+      ) : (
+        <View style={styles.center}>
+          <TouchableHighlight
+            style={[styles.button, this.state.active ?
+              styles.toggleTouchableHighlightActive : styles.toggleTouchableHighlightInactive]}
+            onPress={this.toggleMonitor.bind(this)}
+          >
+            <Text style={styles.whiteText}>
+              {toggleText}
+            </Text>
+          </TouchableHighlight>
+          <View style={[styles.information, this.state.active ? null : styles.hidden]}>
+            <Text>
+              Location: {this.state.location}
+            </Text>
+            <Text>
+              Connection Type: {this.state.connectionType}
+            </Text>
+            <Text>
+              Connection Quality: {qualityNode}
+            </Text>
+            <Text>
+              Online: {online}
+            </Text>
+            <Text>
+              Ping: {pingString}
+            </Text>
+            <Text>
+              Speed: {speedString}
+            </Text>
+            <Text>
+              Next Ping: {nextPing}
+            </Text>
+          </View>
+        </View>
+      )
 
     return (
       <View style={styles.container}>
-        <Button
-          style={this.state.active ?
-            styles.toggleButtonActive : styles.toggleButtonInactive}
-          onPress={this.toggleMonitor}
-        >
-          {toggleText}
-        </Button>
         <Text style={styles.welcome}>
           Network Monitor
         </Text>
         <Text style={styles.instructions}>
-          Connection Type: {this.state.connectionType}
+          Welcome to the Crowd Sourced Network Monitoring Experiment.
+          When the Monitor is active, your device will check the WiFi conditions every
+          10 seconds, and upload it along with your current location to our server.
+          All data sent is anonymized and encrypted. This will drain your battery.
         </Text>
-        <Text style={styles.instructions}>
-          Online: {online}
-        </Text>
-        <Text style={styles.instructions}>
-          Ping: {pingString}
-        </Text>
-        <Text style={styles.instructions}>
-          Speed: {speedString}
-        </Text>
-        <Button
-          onPress={this.testNetwork}
+        <TouchableHighlight
+          style={[styles.button, styles.seeResults]}
+          onPress={this.openResults.bind(this)}
         >
-          Press to test
-        </Button>
+          <Text style={styles.whiteText}>
+            See Live Results
+          </Text>
+        </TouchableHighlight>
+        {body}
       </View>
     );
   }
@@ -127,12 +200,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#333333',
     marginBottom: 5,
+    padding: 5,
+    marginLeft: 20,
+    marginRight: 20
   },
-  toggleButtonActive: {
-    color: '#d9534f'
+  button: {
+    padding: 10,
+    borderRadius: 45,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  toggleButtonInactive: {
-    color: '#5cb85c'
+  seeResults: {
+    backgroundColor: '#5bc0de',
+    marginBottom: 10
+  },
+  toggleTouchableHighlightActive: {
+    backgroundColor: '#d9534f',
+  },
+  toggleTouchableHighlightInactive: {
+    backgroundColor: '#5cb85c',
+  },
+  information: {
+    marginTop: 10
+  },
+  hidden: {
+    opacity: 0
+  },
+  whiteText: {
+    color: 'white'
+  },
+  goldText: {
+    color: '#f0ad4e'
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 });
 

@@ -1,0 +1,9 @@
+package com.networkmonitor.firebase;
+
+// copy this and fill it in
+/**
+ * Created by ling on 2/26/16.
+ */
+public class FirebaseUrl {
+    public final static String FIREBASE_HOST = "";
+}
