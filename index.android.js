@@ -57,7 +57,7 @@ class NetworkMonitor extends Component {
     }
 
     let pingString = ping > 0 ? ping : "Unknown"
-    let speedString = speed > 0 ? speed + " kB/s" : "Unknown"
+    let speedString = speed > 0 ? Math.round(speed) + " kB/s" : "Unknown"
 
     return (
       <View style={styles.container}>
