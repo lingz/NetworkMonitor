@@ -170,7 +170,6 @@ var numDataPointsChanged = false;
 var numUsersChanged = false;
 
 var processStatsPoint = (point) => {
-  console.log("Processing");
   numDataPoints++;
   numDataPointsChanged = true;
   if (!users[point.anonId]) {
@@ -179,7 +178,6 @@ var processStatsPoint = (point) => {
     numUsersChanged = true;
   }
 }
-
 
 
 var startEtl = () => {
