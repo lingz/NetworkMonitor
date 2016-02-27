@@ -83,7 +83,7 @@ class NetworkMonitor extends Component {
   }
 
   openResults() {
-    Linking.openURL("http://www.google.com")
+    Linking.openURL("http://www.thegazelle.org/issue/issue-80/features/wifiexperiment/")
   }
 
   render() {

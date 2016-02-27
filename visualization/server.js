@@ -30,7 +30,9 @@ var lngMax = 54.438638
 
 
 var acceptPoint = (point) => {
-  return point.lat > latMin &&
+  return (point.time / 1000) > startTime &&
+    (point.time / 1000) < endTime &&
+    point.lat > latMin &&
     point.lat < latMax &&
     point.lng > lngMin &&
     point.lng < lngMax;
@@ -53,11 +55,29 @@ let data = [
 },
 ];
 
+var addDataToBin = (point, bin, isBandwidth) => {
+  const isFailure = isBandwidth ?
+    point.speed == -1 : point.ping == -1;
+
+  if (isFailure) {
+    bin.failures += 1
+  } else {
+    bin.rssi.total += point.rssi;
+    bin.rssi.count += 1;
+    if (isBandwidth) {
+      bin.speed.total += point.speed;
+      bin.speed.count += 1;
+    } else {
+      bin.ping.total += point.ping;
+      bin.ping.count += 1;
+    }
+  }
+}
 
 var bins = {};
 var dirtyBins = {};
 
-var processPoint = function(point, isBandwidth) {
+var processMapPoint = function(point, isBandwidth) {
   if (!acceptPoint(point)) {
     console.log("reject");
     return;
@@ -66,8 +86,6 @@ var processPoint = function(point, isBandwidth) {
   const binId = hexbin(point);
   let existingBin = bins[binId];
 
-  const isFailure = isBandwidth ?
-    point.speed == -1 : point.ping == -1;
 
   if (!existingBin) {
     const center = lookupLatLng(binId)
@@ -91,19 +109,7 @@ var processPoint = function(point, isBandwidth) {
     bins[binId] = existingBin;
   }
 
-  if (isFailure) {
-    existingBin.failures += 1
-  } else {
-    existingBin.rssi.total += point.rssi;
-    existingBin.rssi.count += 1;
-    if (isBandwidth) {
-      existingBin.speed.total += point.speed;
-      existingBin.speed.count += 1;
-    } else {
-      existingBin.ping.total += point.ping;
-      existingBin.ping.count += 1;
-    }
-  }
+  addDataToBin(point, existingBin, isBandwidth)
   dirtyBins[binId] = existingBin;
 }
 
@@ -116,16 +122,85 @@ destDataNode.authWithCustomToken(token, (err, auth) => {
   }
 })
 
+var longTimeBuckets = {};
+var shortTimeBuckets = {};
+var dirtyLongTimeBuckets = {};
+var dirtyShortTimeBuckets = {};
+var startTime = 1456516801;
+// Real one
+// var startTime = 1456603201;
+var endTime = 1456689601;
+var shortWindow = 5;
+var longWindow = 10 * 60;
+
+var processTimePoint = (point, isBandwidth) => {
+  if (!acceptPoint(point)) {
+    return;
+  }
+  var now = new Date().getTime();
+
+  var longBucketNum = Math.floor((point.time/1000 - startTime) / longWindow);
+  var bucket = longTimeBuckets[longBucketNum];
+  if (!bucket) {
+    bucket = {
+      time: startTime + (longBucketNum * longWindow),
+      rssi: {
+        total: 0,
+        count: 0
+      },
+      speed: {
+        total: 0,
+        count: 0
+      },
+      ping: {
+        total: 0,
+        count: 0
+      },
+      failures: 0
+    }
+    longTimeBuckets[longBucketNum] = bucket;
+  }
+
+  addDataToBin(point, bucket, isBandwidth);
+  dirtyLongTimeBuckets[longBucketNum] = bucket;
+}
+
+var users = {};
+var numDataPoints = 0;
+var numUsers = 0;
+var numDataPointsChanged = false;
+var numUsersChanged = false;
+
+var processStatsPoint = (point) => {
+  numDataPoints++;
+  numDataPointsChanged = true;
+  if (!users[point.anonId]) {
+    users[point.anonId] = true;
+    numUsers++;
+    numUsersChanged = true;
+  }
+}
+
+
+
 var startEtl = () => {
   sourceDataNode.child("ping").on("child_added", (snapshot) => {
     const val = snapshot.val()
-    processPoint(val, false);
-    syncMap();
+    // processTimePoint(val, false);
+    // processMapPoint(val, false);
+    processStatsPoint(val);
+    // syncTime();
+    // syncMap();
+    syncStats();
   })
   sourceDataNode.child("bandwidth").on("child_added", (snapshot) => {
     const val = snapshot.val()
-    processPoint(val, true);
-    syncMap();
+    // processTimePoint(val, true);
+    // processMapPoint(val, true);
+    processStatsPoint(val);
+    // syncTime();
+    // syncMap();
+    syncStats();
   })
 }
 
@@ -146,8 +221,28 @@ var debounce = (fn, timeout) => {
 }
 
 var syncMap = debounce(() => {
-  console.log("syncing - dirty: ");
+  console.log("syncing map - dirty: ");
   console.log(dirtyBins);
   destDataNode.child("map").update(dirtyBins);
   dirtyBins = {};
+}, 5000);
+
+var syncTime = debounce(() => {
+  console.log("syncing time - dirty: ");
+  console.log(dirtyLongTimeBuckets);
+  destDataNode.child("time").update(dirtyLongTimeBuckets);
+  dirtyLongTimeBuckets = {};
+}, 5000);
+
+var syncStats = debounce(() => {
+  if (numDataPointsChanged) {
+    console.log("syncing stats - data points");
+    numDataPointsChanged = false;
+    destDataNode.child("numData").set(numDataPoints);
+  }
+  if (numUsersChanged) {
+    console.log("syncing stats - users");
+    numUsersChanged = false;
+    destDataNode.child("numUsers").set(numUsers);
+  }
 }, 5000);
