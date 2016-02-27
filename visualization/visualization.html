@@ -112,7 +112,7 @@
               switch (loadFrom) {
                   case 0:
                       var ping = d[0].o.ping;
-                      return 1 / (ping.total/ping.count);
+                      return 700 - (ping.total/ping.count);
                   case 1:
                       var rssi = d[0].o.rssi;
                       return rssi.total/rssi.count;
@@ -324,8 +324,8 @@ function drawChart() {
   var data = new google.visualization.DataTable();
         
       data.addColumn('date', 'Time');
-      data.addColumn('number', 'Ping');
-      data.addColumn('number', 'Signal Strength');
+      data.addColumn('number', tableName(leftMode));
+      data.addColumn('number', tableName(rightMode));
 
       var dataTable = generateTable(timeData);
       data.addRows(
