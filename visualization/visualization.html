@@ -52,6 +52,7 @@
     <style type="text/css">
       #map {
         margin: 0 auto;
+        width: 100%;
       }
       .hexbin-hexagon {
           stroke: #000;
@@ -83,7 +84,7 @@
     <h1>Map Data</h1>
 
 
-    <div id="map" style="width: 700px; height: 500px; border: 1px solid #ccc"></div>
+    <div id="map" style="height: 500px; border: 1px solid #ccc"></div>
 
 
    <!-- myscript -->
@@ -288,6 +289,23 @@ var generateTable = function (data) {
   });
 };
 
+var tableName = function(mode) {
+  switch (mode) {
+    case 0:
+      return "Ping (ms)"
+      break;
+    case 1:
+      return "Signal Strength (/5)"
+      break;
+    case 2:
+      return "Connection Speed"
+      break;
+    case 3:
+      return "Connection Failures (%)"
+      break;
+  }
+}
+
 // every minute
 
 //table
@@ -335,18 +353,16 @@ function drawChart() {
         title: 'Wifi Experiment Time Series',
         curveType: 'function',
         colors: [ '#369120', '#3366FF'],
-        width: 800,
         height: 500,
         interpolateNulls: true,
         series: {
           0: {targetAxisIndex: 0},
           1: {targetAxisIndex: 1},
-          2: {targetAxisIndex: 2}
         },
         vAxes: {
           // Adds titles to each axis.
-          0: {title: 'Temps (Celsius)'},
-          1: {title: 'Daylight'}
+          0: {title: tableName(leftMode)},
+          1: {title: tableName(rightMode)}
         },
         hAxis: {
           title: "Time",
@@ -436,6 +452,7 @@ var switchLineMode = function(mode, seriesNumber) {
   #chart-container {
     display: inline-block;
     margin: 0 auto;
+    width: 100%;
   }
 </style>
 
@@ -464,6 +481,9 @@ var switchLineMode = function(mode, seriesNumber) {
 (function() {
   switchLineMode(0, 0);
   switchLineMode(1, 1);
+  window.onresize = function () {
+    drawChart();
+	};
 })();
 </script>
 </div>
