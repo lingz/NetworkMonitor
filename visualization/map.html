@@ -1,0 +1,171 @@
+<html>
+<head>
+    <style type="text/css">
+.hexbin-hexagon {
+    stroke: #000;
+    stroke-width: 1px;
+}
+    </style>
+    
+    <!-- script, import leaflet library -->
+    <script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+     <script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+     <script src="https://d3js.org/d3.v3.min.js"></script>
+     <script src="https://rawgit.com/d3/d3-plugins/master/hexbin/hexbin.js"></script>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.js"></script>
+     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.3/leaflet.css"></script>
+     <script src="https://rawgit.com/Asymmetrik/leaflet-d3/master/dist/leaflet-d3.js"></script>
+   
+</head>
+<body>
+    <h1>NYU Abu Dhabi connention data</h1>
+
+    <div id="map" style="width: 600px; height: 400px; border: 1px solid #ccc"></div>
+
+
+ <!-- myscript -->
+    <script type="text/javascript">
+data = {};
+var center = [24.5237607, 54.4349284];
+
+var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    osm = L.tileLayer(osmUrl, {maxZoom: 18, attribution: osmAttrib});
+
+map = new L.Map('map', {layers: [osm], center: new L.LatLng(center[0], center[1]), zoom: 17});
+var loadFrom = 0;
+var options = {
+    radius : 10,
+    opacity: 0.4,
+    duration: 500,
+    lat: function(d){
+        return d.lat;
+    },
+    lng: function(d){
+        return d.lng;
+    },
+    value: function(d){
+        console.log(d);
+        switch (loadFrom) {
+            case 0:
+                var ping = d[0].o.ping;
+                return 1 / (ping.total/ping.count);
+            case 1:
+                var rssi = d[0].o.rssi;
+                return rssi.total/rssi.count;
+            case 2:
+                var speed = d[0].o.speed;
+                return speed.total/speed.count;
+            case 3: 
+                var failures = d[0].o.failures;
+                return  Math.pow(1 - (failures / (failures + d[0].o.ping.count + d[0].o.speed.count)), 10);
+        }
+    },
+    valueFloor: 0,
+    valueCeil: undefined,
+    onclick: function(d, node, layer) {
+        switch (loadFrom) {
+
+        case 0:
+            document.getElementById("dataInfo").innerHTML = "Ping:<br/>" + Math.round(100*d[0].o.ping.total / d[0].o.ping.count)/100 + " ms";
+        
+        break
+        case 1: 
+            document.getElementById("dataInfo").innerHTML = "Signal Strength:<br/>" + (Math.round(100*d[0].o.rssi.total / d[0].o.rssi.count)/100 + 1) + "/5";
+        
+        break
+        case 2: 
+            document.getElementById("dataInfo").innerHTML = "Connection Speed:<br/>" + Math.round(100*d[0].o.speed.total / d[0].o.speed.count)/100 + ' kbps';
+        
+        break
+        case 3:
+            document.getElementById("dataInfo").innerHTML = "Connection Failures:<br/>" + d[0].o.failures + " failures / "
+            + (d[0].o.failures + d[0].o.speed.count + d[0].o.ping.count) + " attempts<br/>"
+            + 'Percentage of connections that failed: ' + Math.round((d[0].o.failures / (d[0].o.failures + d[0].o.speed.count + d[0].o.ping.count)*100)*100)/100 + '%';
+        
+        break
+}
+    }
+};
+
+var hexLayer = L.hexbinLayer(options).addTo(map)
+hexLayer.colorScale().range(['#ff4d00', '#1fa700']);
+
+var switchMode = function(mode){
+    loadFrom = mode;
+
+    var button;
+    var dataText
+
+    switch(mode) {
+        case 0:
+            button = 'btn-ping';
+            dataText = "Ping:";
+            break;
+        case 1:
+            button = 'btn-rssi';
+            dataText = "Signal Strength:";
+            break;
+        case 2:
+            button = 'btn-speed';
+            dataText = "Connection Speed:";
+            break;
+        case 3:
+            button = "btn-failures";
+            dataText = "Connection Failures:";
+            break;
+    }
+    
+    document.getElementById("dataInfo").innerHTML = dataText + "<br/>Click a cell to see more";
+    var buttons = document.getElementsByTagName('button');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].disabled = false;
+    }
+    document.getElementById(button).disabled = true;
+
+    generate();
+    
+
+};
+function generate() {
+    dataFiltered = Object.keys(data).map(function(key) {
+    return data[key];
+}).filter(function(d) {
+    switch (loadFrom) {
+            case 0:        
+                return d.ping.count > 0;
+            case 1:
+                return d.rssi.count > 0;
+            case 2:
+                return d.speed.count > 0;
+            case 3: 
+                return d.ping.count > 0;
+        }
+    // body...
+})
+hexLayer.data(dataFiltered);
+}
+var fireBase = new Firebase("https://saadiyat-network-monitor-vis.firebaseio.com");
+fireBase.child('map').once('value', function(dataSnapshot){
+    data = dataSnapshot.val();
+    switchMode(0);
+});
+
+// generateData();
+
+</script>
+
+<button id='btn-ping' onclick="switchMode(0)" >Ping</button>
+<button id='btn-rssi' onclick="switchMode(1)" >Signal Strength</button>
+<button id='btn-speed' onclick="switchMode(2)" >Connection Speed</button>
+<button id='btn-failures' onclick="switchMode(3)" >Connection Failures</button>
+
+<div>
+    <br/>
+    <div id="dataInfo">
+    </div>
+</div>
+<div id="line_top_x"></div>
+    </body>
+    </html>
