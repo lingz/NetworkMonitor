@@ -124,9 +124,9 @@ var longTimeBuckets = {};
 var shortTimeBuckets = {};
 var dirtyLongTimeBuckets = {};
 var dirtyShortTimeBuckets = {};
-var startTime = 1456516801;
+//var startTime = 1456516801;
 // Real one
-// var startTime = 1456603201;
+var startTime = 1456603201;
 var endTime = 1456689601;
 var shortWindow = 5;
 var longWindow = 10 * 60;
@@ -170,6 +170,9 @@ var numDataPointsChanged = false;
 var numUsersChanged = false;
 
 var processStatsPoint = (point) => {
+  if (!acceptPoint(point)) {
+    return;
+  }
   numDataPoints++;
   numDataPointsChanged = true;
   if (!users[point.anonId]) {
