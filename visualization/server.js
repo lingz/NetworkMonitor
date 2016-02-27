@@ -170,6 +170,7 @@ var numDataPointsChanged = false;
 var numUsersChanged = false;
 
 var processStatsPoint = (point) => {
+  console.log("Processing");
   numDataPoints++;
   numDataPointsChanged = true;
   if (!users[point.anonId]) {
@@ -184,20 +185,20 @@ var processStatsPoint = (point) => {
 var startEtl = () => {
   sourceDataNode.child("ping").on("child_added", (snapshot) => {
     const val = snapshot.val()
-    // processTimePoint(val, false);
-    // processMapPoint(val, false);
+    processTimePoint(val, false);
+    processMapPoint(val, false);
     processStatsPoint(val);
-    // syncTime();
-    // syncMap();
+    syncTime();
+    syncMap();
     syncStats();
   })
   sourceDataNode.child("bandwidth").on("child_added", (snapshot) => {
     const val = snapshot.val()
-    // processTimePoint(val, true);
-    // processMapPoint(val, true);
+    processTimePoint(val, true);
+    processMapPoint(val, true);
     processStatsPoint(val);
-    // syncTime();
-    // syncMap();
+    syncTime();
+    syncMap();
     syncStats();
   })
 }
