@@ -5,8 +5,6 @@ var Firebase = require("firebase")
 var FirebaseTokenGenerator = require("firebase-token-generator")
 var d3 = require("./hexbin.js")
 var _ = require("lodash")
-var speedData = require("./speedData.js");
-var pingData = require("./pingData.js");
 
 var sourceDataNode = new Firebase(keys.sourceDataFirebaseUrl)
 var destDataNode = new Firebase(keys.destDataFirebaseUrl)
