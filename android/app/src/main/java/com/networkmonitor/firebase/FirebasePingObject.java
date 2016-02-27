@@ -13,7 +13,7 @@ public class FirebasePingObject {
     public int rssi;
     public double lat;
     public double lng;
-    public Map<String, String> time = ServerValue.TIMESTAMP;
+    public double time;
 
     public FirebasePingObject() {
 
@@ -25,5 +25,6 @@ public class FirebasePingObject {
         this.rssi = rssi;
         this.lat = lat;
         this.lng = lng;
+        time = (double) System.currentTimeMillis();
     }
 }

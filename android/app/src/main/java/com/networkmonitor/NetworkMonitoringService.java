@@ -42,6 +42,8 @@ public class NetworkMonitoringService extends Service implements
     Bus mBus;
     private volatile boolean mHasInternet;
     private volatile Events.PingResult mLastPingResult;
+    private volatile Events.BandwidthResult mLastBandwidthResult;
+
 
     WifiManager mWifiManager;
 
@@ -55,6 +57,8 @@ public class NetworkMonitoringService extends Service implements
     private Firebase mRootNode;
     private Firebase mPingNode;
     private Firebase mBandwidthNode;
+
+    private static final long EXPERIMENT_END = ((long) 1456689601) * 1000;
 
     int mAnonId = -1;
 
@@ -96,6 +100,18 @@ public class NetworkMonitoringService extends Service implements
             Executors.newScheduledThreadPool(2);
 
 
+    @Subscribe
+    public void lastResultsListener(Events.LastResults lastResults) {
+        if (mLastLocation != null) {
+            mBus.post(new Events.LocationUpdate(mLastLocation));
+        }
+        if (mLastPingResult != null) {
+            mBus.post(mLastPingResult);
+        }
+        if (mLastBandwidthResult != null) {
+            mBus.post(mLastBandwidthResult);
+        }
+    }
 
     @Override
     public void onCreate() {
@@ -132,7 +148,7 @@ public class NetworkMonitoringService extends Service implements
             }
         };
         mScheduler.scheduleAtFixedRate(pingTest, 0, 10, TimeUnit.SECONDS);
-        mScheduler.scheduleAtFixedRate(bandwidthTest, 500, 10 * 1000, TimeUnit.MILLISECONDS);
+        mScheduler.scheduleAtFixedRate(bandwidthTest, 1, 60, TimeUnit.SECONDS);
 
         // Make a foreground service
         Intent resultIntent = new Intent(this, MainActivity.class);
@@ -165,6 +181,7 @@ public class NetworkMonitoringService extends Service implements
     public void onDestroy() {
         super.onDestroy();
         Log.e("LING", "NETWORK MONITOR DESTROYED");
+        mGoogleApiClient.disconnect();
         mScheduler.shutdown();
         mBus.unregister(this);
     }
@@ -204,7 +221,8 @@ public class NetworkMonitoringService extends Service implements
         if (mHasInternet) {
             speed = mNetworkMonitor
                     .checkBandwidth("http://cdn.rawgit.com/lingz/NetworkMonitor/master/static/trialImage.jpg");
-            mBus.post(new Events.BandwidthResult(speed));
+            mLastBandwidthResult = new Events.BandwidthResult(speed);
+            mBus.post(mLastBandwidthResult);
         }
     }
 
@@ -216,7 +234,8 @@ public class NetworkMonitoringService extends Service implements
                 && (mLastLocation.getLatitude() > 24.517960)
                 && (mLastLocation.getLatitude() < 24.529028)
                 && (mLastLocation.getLongitude() > 54.430823)
-                && (mLastLocation.getLongitude() < 54.438638);
+                && (mLastLocation.getLongitude() < 54.438638)
+                && (System.currentTimeMillis() < EXPERIMENT_END);
 
     }
 
@@ -235,13 +254,10 @@ public class NetworkMonitoringService extends Service implements
 
     @Subscribe
     public void bandwidthResultListener(Events.BandwidthResult bandwidthResult) {
-        if (bandwidthResult.speed == null) {
-            return;
-        }
         if (shouldUpload()) {
             mBandwidthNode.push().setValue(new FirebaseBandwidthObject(
                     mAnonId,
-                    bandwidthResult.speed,
+                    bandwidthResult.speed == null ? -1.0 : bandwidthResult.speed,
                     mLastPingResult.rssiLevel,
                     mLastLocation.getLatitude(),
                     mLastLocation.getLongitude()

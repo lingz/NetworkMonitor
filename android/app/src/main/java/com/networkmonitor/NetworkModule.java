@@ -24,6 +24,7 @@ import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.uimanager.events.Event;
 import com.networkmonitor.utils.BusServiceConnection;
 import com.networkmonitor.utils.ErrorDialogHelper;
+import com.squareup.otto.Bus;
 import com.squareup.otto.Subscribe;
 
 /**
@@ -35,7 +36,7 @@ public class NetworkModule extends ReactContextBaseJavaModule implements Lifecyc
     private Context mContext;
     private DeviceEventManagerModule.RCTDeviceEventEmitter mEmitModule;
 
-    private BusServiceConnection mMonitoringService;
+    private Bus mBus;
 
     private boolean mHasLocationPermissions = false;
 
@@ -46,8 +47,9 @@ public class NetworkModule extends ReactContextBaseJavaModule implements Lifecyc
 
         mReactContext.addLifecycleEventListener(this);
 
-        ((NetworkMonitorApplication) mContext.getApplicationContext())
-                .getBus().register(this);
+        mBus = ((NetworkMonitorApplication) mContext.getApplicationContext())
+                .getBus();
+        mBus.register(this);
         Log.e("LING", "START");
     }
 
@@ -83,7 +85,6 @@ public class NetworkModule extends ReactContextBaseJavaModule implements Lifecyc
     public void startMonitoringService() {
         requestPermissions();
         if (mHasLocationPermissions) {
-            mMonitoringService = new BusServiceConnection();
             mContext.startService(new Intent(mContext, NetworkMonitoringService.class));
         } else {
             ErrorDialogHelper.fatalCrashDialog(mContext,
@@ -111,6 +112,7 @@ public class NetworkModule extends ReactContextBaseJavaModule implements Lifecyc
             }
         }
         getEmitModule().emit("active", active);
+        mBus.post(new Events.LastResults());
     }
 
 

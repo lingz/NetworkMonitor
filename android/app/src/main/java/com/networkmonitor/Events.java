@@ -34,4 +34,8 @@ public class Events {
             this.location = location;
         }
     }
+
+    public static class LastResults {
+
+    }
 }

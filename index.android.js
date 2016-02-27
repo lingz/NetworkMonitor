@@ -9,9 +9,11 @@ import React, {
   StyleSheet,
   Text,
   View,
+  Image,
   DeviceEventEmitter,
   Linking,
   TouchableHighlight,
+  ScrollView,
 } from 'react-native';
 
 class NetworkMonitor extends Component {
@@ -97,8 +99,10 @@ class NetworkMonitor extends Component {
       online = "Yes"
     }
 
-    let pingString = ping > 0 ? ping : "Unknown"
-    let speedString = speed > 0 ? Math.round(speed) + " kB/s" : "Unknown"
+    let pingString = ping > 0 ? ping :
+      (ping === -1 ? "Test Failed" : "Unknown")
+    let speedString = speed > 0 ? Math.round(speed) + " kB/s" :
+      (speed === -1 ? "Test Failed" : "Unknown")
 
     let toggleText = this.state.active ?
       "Stop Monitoring" : "Start Monitoring"
@@ -160,10 +164,15 @@ class NetworkMonitor extends Component {
       )
 
     return (
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.welcome}>
           Network Monitor
         </Text>
+        <Image
+          resizeMode="contain"
+          style={styles.image}
+          source={require("./android/app/src/main/res/drawable-nodpi/emoji.png")}
+        />
         <Text style={styles.instructions}>
           Welcome to the Crowd Sourced Network Monitoring Experiment.
           When the Monitor is active, your device will check the WiFi conditions every
@@ -179,14 +188,13 @@ class NetworkMonitor extends Component {
           </Text>
         </TouchableHighlight>
         {body}
-      </View>
+      </ScrollView>
     );
   }
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
@@ -203,6 +211,11 @@ const styles = StyleSheet.create({
     padding: 5,
     marginLeft: 20,
     marginRight: 20
+  },
+  image: {
+    width: 100,
+    height: 100,
+    marginBottom: 10
   },
   button: {
     padding: 10,
@@ -221,7 +234,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#5cb85c',
   },
   information: {
-    marginTop: 10
+    marginTop: 10,
+    marginBottom: 10
   },
   hidden: {
     opacity: 0
